@@ -32,3 +32,89 @@ jobs:
           CLOUDFLARE_API_KEY: ${{ secrets.CLOUDFLARE_API_KEY }}
           CLOUDFLARE_EMAIL: ${{ secrets.CLOUDFLARE_EMAIL }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Configure Zone, DNS and Worker Domains
+        env:
+          CF_KEY: ${{ secrets.CLOUDFLARE_API_KEY }}
+          CF_EMAIL: ${{ secrets.CLOUDFLARE_EMAIL }}
+          CF_ACC: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          python3 - << 'EOF'
+          import os, json, urllib.request, urllib.error
+
+          email = os.environ['CF_EMAIL'].strip()
+          key = os.environ['CF_KEY'].strip()
+          acc = os.environ['CF_ACC'].strip()
+          domain = 'pdcnoticias.com.mx'
+          worker = 'pdc-noticias'
+          gmail = 'pdcnews073@gmail.com'
+
+          def cf_req(method, path, data=None):
+              url = f"https://api.cloudflare.com/client/v4{path}"
+              headers = {
+                  'X-Auth-Email': email,
+                  'X-Auth-Key': key,
+                  'Content-Type': 'application/json'
+              }
+              body = json.dumps(data).encode('utf-8') if data is not None else None
+              req = urllib.request.Request(url, data=body, headers=headers, method=method)
+              try:
+                  with urllib.request.urlopen(req) as resp:
+                      return json.loads(resp.read().decode('utf-8'))
+              except urllib.error.HTTPError as e:
+                  err_body = e.read().decode('utf-8', errors='replace')
+                  print(f"HTTP {e.code} on {method} {path}: {err_body}")
+                  return json.loads(err_body) if err_body.startswith('{') else {'success': False}
+
+          # 1. Check or create zone
+          res = cf_req('GET', f"/zones?name={domain}")
+          zones = res.get('result') or []
+          if zones:
+              zone = zones[0]
+              print(f"Zone already exists: {zone['id']}")
+          else:
+              create_res = cf_req('POST', '/zones', {
+                  'name': domain,
+                  'account': {'id': acc},
+                  'type': 'full'
+              })
+              zone = create_res.get('result')
+              print(f"Created zone: {zone['id']}")
+
+          zone_id = zone['id']
+          ns = zone.get('name_servers', [])
+          print("==========================================")
+          print("NAMESERVERS FOR GODADDY:", " | ".join(ns))
+          print("==========================================")
+
+          # 2. List existing DNS records & remove old MX / SPF / DMARC
+          recs = (cf_req('GET', f"/zones/{zone_id}/dns_records?per_page=100").get('result')) or []
+          for r in recs:
+              rtype = r.get('type')
+              rname = r.get('name')
+              rcontent = r.get('content', '')
+              if rtype == 'MX' or (rtype == 'TXT' and ('v=spf1' in rcontent or rname.startswith('_dmarc'))):
+                  print(f"Deleting old DNS record: {rtype} {rname} -> {rcontent}")
+                  cf_req('DELETE', f"/zones/{zone_id}/dns_records/{r['id']}")
+
+          # 3. Add clean ImprovMX + DMARC records
+          desired_dns = [
+              {'type': 'MX', 'name': '@', 'content': 'mx1.improvmx.com', 'priority': 10, 'ttl': 1},
+              {'type': 'MX', 'name': '@', 'content': 'mx2.improvmx.com', 'priority': 20, 'ttl': 1},
+              {'type': 'TXT', 'name': '@', 'content': 'v=spf1 include:spf.improvmx.com ~all', 'ttl': 1},
+              {'type': 'TXT', 'name': '_dmarc', 'content': f'v=DMARC1; p=none; sp=none; rua=mailto:{gmail}', 'ttl': 1},
+          ]
+          for d in desired_dns:
+              r = cf_req('POST', f"/zones/{zone_id}/dns_records", d)
+              print(f"Added DNS {d['type']} {d['name']}: success={r.get('success')}")
+
+          # 4. Attach custom domains to Worker
+          for host in [domain, f"www.{domain}"]:
+              dom_res = cf_req('PUT', f"/accounts/{acc}/workers/domains", {
+                  'environment': 'production',
+                  'hostname': host,
+                  'service': worker,
+                  'zone_id': zone_id
+              })
+              print(f"Worker domain {host}: success={dom_res.get('success')}")
+          EOF
