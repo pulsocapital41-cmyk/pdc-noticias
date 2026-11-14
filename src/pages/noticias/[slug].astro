@@ -1,0 +1,95 @@
+---
+import { render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import Card from '../../components/Card.astro';
+import { getNotas, SITE, BRAND_NAME, img, summary, cats, fmtFull, optimize, slugify } from '../../lib';
+
+export async function getStaticPaths() {
+  const notas = await getNotas();
+  return notas.map((nota) => ({ params: { slug: nota.id }, props: { nota, notas } }));
+}
+
+const { nota, notas } = Astro.props;
+const { Content } = await render(nota);
+const src = img(nota);
+const artSrc = optimize(src, 1200);
+const url = `${SITE}/noticias/${nota.id}/`;
+const related = notas
+  .filter((n) => n.id !== nota.id && cats(n).some((c) => cats(nota).includes(c)))
+  .slice(0, 3);
+
+const jsonld = {
+  '@context': 'https://schema.org',
+  '@type': 'NewsArticle',
+  headline: nota.data.title,
+  description: summary(nota),
+  image: src ? [new URL(src, SITE).href] : undefined,
+  datePublished: nota.data.pubDate.toISOString(),
+  dateModified: nota.data.pubDate.toISOString(),
+  author: { '@type': 'Organization', name: nota.data.author },
+  publisher: {
+    '@type': 'Organization',
+    name: BRAND_NAME,
+    logo: { '@type': 'ImageObject', url: `${SITE}/logo.png` },
+  },
+  mainEntityOfPage: url,
+};
+---
+<Base title={nota.data.title} description={summary(nota)} image={src} type="article" jsonld={jsonld}>
+  <article class="wrap article">
+    <header class="article-head">
+      <div class="tags">
+        {cats(nota).map((c) => (
+          <a href={`/seccion/${slugify(c)}/`} class="tag">{c}</a>
+        ))}
+      </div>
+      <h1>{nota.data.title}</h1>
+      {summary(nota) && <p class="lead">{summary(nota)}</p>}
+      <div class="meta">
+        <div class="meta-author">
+          <span class="author-avatar">⚓</span>
+          <div>
+            <strong>{nota.data.author}</strong>
+            <span>Playa del Carmen, Q. Roo</span>
+          </div>
+        </div>
+        <time datetime={nota.data.pubDate.toISOString()}>{fmtFull(nota.data.pubDate)}</time>
+      </div>
+    </header>
+
+    {artSrc && (
+      <figure class="art-figure">
+        <img class="art-img" src={artSrc} alt={nota.data.title} />
+      </figure>
+    )}
+
+    <div class="body">
+      <Content />
+    </div>
+
+    {nota.data.tags && nota.data.tags.length > 0 && (
+      <div class="art-tags">
+        <span>Temas:</span>
+        {nota.data.tags.map((t: string) => (
+          <span class="art-tag-pill">#{t}</span>
+        ))}
+      </div>
+    )}
+  </article>
+
+  {related.length > 0 && (
+    <section class="wrap sec-block">
+      <div class="sec-header">
+        <div>
+          <span class="sec-kicker">SIGUE LEYENDO</span>
+          <h2 class="sec-title">Te puede interesar</h2>
+        </div>
+      </div>
+      <div class="grid3">
+        {related.map((n) => (
+          <Card nota={n} />
+        ))}
+      </div>
+    </section>
+  )}
+</Base>

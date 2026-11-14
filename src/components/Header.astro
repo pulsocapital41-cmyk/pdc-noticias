@@ -1,0 +1,51 @@
+---
+import { SECTIONS, CENTRAL, BRAND_NAME, BRAND_SUBTITLE, slugify } from '../lib';
+const path = Astro.url.pathname;
+const today = new Date().toLocaleDateString('es-MX', {
+  weekday: 'short',
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+});
+---
+<div class="topbar">
+  <div class="wrap topbar-in">
+    <div class="topbar-left">
+      <span class="pulse-dot"></span>
+      <span>{BRAND_SUBTITLE}</span>
+      <span class="sep">·</span>
+      <span class="topbar-date">{today}</span>
+    </div>
+    <div class="topbar-right">
+      <a href="/seccion/noticias/">Última Hora</a>
+      <span class="sep">·</span>
+      <a href="/seccion/playas/">Reporte de Playas</a>
+      <span class="sep">·</span>
+      <a href={CENTRAL} target="_blank" rel="noopener" class="redaccion-pill">Sala de Redacción ↗</a>
+    </div>
+  </div>
+</div>
+
+<header class="site-header">
+  <div class="wrap head-in">
+    <a href="/" class="brand" aria-label={BRAND_NAME}>
+      <img src="/logo.png" alt={BRAND_NAME} height="66" />
+      <div class="brand-meta">
+        <span class="brand-kicker">REVISTA DIGITAL · CARIBE MEXICANO</span>
+        <span class="brand-title">PDC <em>NEWS</em></span>
+      </div>
+    </a>
+
+    <nav class="nav" aria-label="Secciones principales">
+      <a href="/" class:list={[{ active: path === '/' }]}>Portada</a>
+      {SECTIONS.map((s) => (
+        <a
+          href={`/seccion/${slugify(s)}/`}
+          class:list={[{ active: path.startsWith(`/seccion/${slugify(s)}`) }]}
+        >
+          {s}
+        </a>
+      ))}
+    </nav>
+  </div>
+</header>

@@ -1,0 +1,42 @@
+---
+import Base from '../../layouts/Base.astro';
+import Card from '../../components/Card.astro';
+import { getNotas, slugify, cats, SECTIONS, FOOTER_SECTIONS, BRAND_NAME } from '../../lib';
+
+export async function getStaticPaths() {
+  const notas = await getNotas();
+  const map = new Map<string, string>();
+  for (const s of [...SECTIONS, ...FOOTER_SECTIONS]) map.set(slugify(s), s);
+  for (const n of notas) {
+    for (const c of cats(n)) {
+      if (!map.has(slugify(c))) map.set(slugify(c), c);
+    }
+  }
+  return [...map].map(([slug, name]) => ({
+    params: { cat: slug },
+    props: {
+      name,
+      items: notas.filter((n) => cats(n).some((c) => slugify(c) === slug)),
+    },
+  }));
+}
+
+const { name, items } = Astro.props;
+---
+<Base title={name} description={`Cobertura y noticias de ${name} en ${BRAND_NAME} (Playa del Carmen y Quintana Roo).`}>
+  <section class="wrap sec-page">
+    <div class="page-head">
+      <span class="sec-kicker">COBERTURA ESPECIALIZADA · {items.length} NOTAS</span>
+      <h1 class="page-title">{name}</h1>
+    </div>
+    {items.length ? (
+      <div class="grid3">
+        {items.map((n) => (
+          <Card nota={n} />
+        ))}
+      </div>
+    ) : (
+      <p class="empty-msg">Próximamente más cobertura en esta sección.</p>
+    )}
+  </section>
+</Base>

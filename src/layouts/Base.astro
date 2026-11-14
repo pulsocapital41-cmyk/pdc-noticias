@@ -1,0 +1,67 @@
+---
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { SITE, BRAND_NAME } from '../lib';
+import '../styles.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string | null;
+  type?: 'website' | 'article';
+  jsonld?: object;
+  pubDate?: Date;
+}
+
+const {
+  title,
+  description = 'PDC Noticias (PDC News) — Portal informativo y revista digital de Playa del Carmen, la Riviera Maya y Quintana Roo. Noticias locales, turismo, economía, playas, medio ambiente y cultura.',
+  image,
+  type = 'website',
+  jsonld,
+} = Astro.props;
+
+const fullTitle = title ? `${title} | ${BRAND_NAME}` : `${BRAND_NAME} — Playa del Carmen, Turismo, Comunidad y Negocios en Quintana Roo`;
+const canonical = new URL(Astro.url.pathname, SITE).href;
+const ogImage = new URL(image ?? '/logo.png', SITE).href;
+
+const org = {
+  '@context': 'https://schema.org',
+  '@type': 'NewsMediaOrganization',
+  name: BRAND_NAME,
+  alternateName: 'PDC News',
+  url: SITE,
+  logo: { '@type': 'ImageObject', url: `${SITE}/logo.png` },
+};
+---
+<!doctype html>
+<html lang="es-MX">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <meta property="og:type" content={type} />
+    <meta property="og:site_name" content={BRAND_NAME} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:url" content={canonical} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script type="application/ld+json" set:html={JSON.stringify(jsonld ?? org)} />
+  </head>
+  <body>
+    <Header />
+    <main><slot /></main>
+    <Footer />
+  </body>
+</html>

@@ -1,0 +1,54 @@
+---
+import { SECTIONS, FOOTER_SECTIONS, CENTRAL, BRAND_NAME, slugify } from '../lib';
+---
+<footer class="site-footer">
+  <div class="wrap foot-grid">
+    <div class="foot-brand">
+      <a href="/" class="foot-logo-wrap">
+        <img src="/logo.png" alt={BRAND_NAME} height="74" class="foot-logo" />
+      </a>
+      <p class="foot-desc">
+        Periodismo ágil, directo y ciudadano desde Playa del Carmen. Cobertura de impacto local, turismo, economía, medio ambiente, playas y cultura en el corazón de la Riviera Maya y Quintana Roo.
+      </p>
+      <div class="foot-badges">
+        <span>📍 Playa del Carmen, Q. Roo</span>
+        <span>⚓ Edición Digital</span>
+      </div>
+    </div>
+
+    <div>
+      <h4>Secciones</h4>
+      <ul class="foot-list">
+        {SECTIONS.map((s) => (
+          <li><a href={`/seccion/${slugify(s)}/`}>{s}</a></li>
+        ))}
+      </ul>
+    </div>
+
+    <div>
+      <h4>Especiales</h4>
+      <ul class="foot-list">
+        {FOOTER_SECTIONS.slice(0, 7).map((s) => (
+          <li><a href={`/seccion/${slugify(s)}/`}>{s}</a></li>
+        ))}
+      </ul>
+    </div>
+
+    <div>
+      <h4>Redacción y Contacto</h4>
+      <ul class="foot-list">
+        <li><a href="mailto:redaccion@pdcnoticias.com.mx">redaccion@pdcnoticias.com.mx</a></li>
+        <li><a href="mailto:contacto@pdcnoticias.com.mx">contacto@pdcnoticias.com.mx</a></li>
+        <li><a href="mailto:publicidad@pdcnoticias.com.mx">publicidad@pdcnoticias.com.mx</a></li>
+        <li class="foot-central">
+          <a href={CENTRAL} target="_blank" rel="noopener">⚡ Central Editorial ↗</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="wrap copy">
+    <span>© {new Date().getFullYear()} {BRAND_NAME} (pdcnoticias.com.mx). Todos los derechos reservados.</span>
+    <span>Infraestructura de alta velocidad · Quintana Roo, México</span>
+  </div>
+</footer>

@@ -1,0 +1,131 @@
+---
+import Base from '../layouts/Base.astro';
+import Card from '../components/Card.astro';
+import { getNotas, SECTIONS, slugify, cats, img, summary, fmt, optimize } from '../lib';
+
+const notas = await getNotas();
+const hero = notas[0];
+const subHero = notas.slice(1, 3);
+const radar = notas.slice(3, 8);
+const destacadas = notas.slice(8, 14);
+const latest = notas.slice(14, 23);
+
+const blocks = SECTIONS.map((s) => ({
+  name: s,
+  slug: slugify(s),
+  items: notas.filter((n) => cats(n).some((c) => slugify(c) === slugify(s))).slice(0, 4),
+}));
+---
+<Base>
+  <!-- Barra de Tendencias / Pulso Rápido -->
+  <div class="ticker-bar">
+    <div class="wrap ticker-in">
+      <span class="ticker-badge">EN PORTADA</span>
+      <div class="ticker-links">
+        {notas.slice(0, 4).map((n) => (
+          <a href={`/noticias/${n.id}/`}>{n.data.title}</a>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  <!-- Bloque Principal Estilo Revista Moderna (Bloomberg / Forbes / Wired) -->
+  <section class="wrap hero-magazine">
+    <div class="hero-col-main">
+      <a href={`/noticias/${hero.id}/`} class="hero-lead">
+        <div class="hero-lead-media">
+          <img src={optimize(img(hero), 1400)} alt={hero.data.title} fetchpriority="high" />
+          <span class="tag tag-hero">{cats(hero)[0]}</span>
+        </div>
+        <div class="hero-lead-content">
+          <div class="hero-meta">
+            <span>REPORTAJE PRINCIPAL</span>
+            <span>·</span>
+            <time>{fmt(hero.data.pubDate)}</time>
+          </div>
+          <h1>{hero.data.title}</h1>
+          <p>{summary(hero)}</p>
+        </div>
+      </a>
+
+      <div class="hero-duo">
+        {subHero.map((n) => (
+          <Card nota={n} size="md" />
+        ))}
+      </div>
+    </div>
+
+    <aside class="hero-col-radar">
+      <div class="radar-box">
+        <div class="radar-head">
+          <span class="pulse-dot"></span>
+          <h2>Pulso Local · Al Momento</h2>
+        </div>
+        <div class="radar-list">
+          {radar.map((n, idx) => (
+            <article class="radar-item">
+              <span class="radar-idx">0{idx + 1}</span>
+              <div>
+                <div class="radar-meta">
+                  <a href={`/seccion/${slugify(cats(n)[0])}/`} class="radar-cat">{cats(n)[0]}</a>
+                  <time>{fmt(n.data.pubDate)}</time>
+                </div>
+                <h3><a href={`/noticias/${n.id}/`}>{n.data.title}</a></h3>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </aside>
+  </section>
+
+  <!-- Selección Editorial / Análisis y Crónicas -->
+  <section class="wrap sec-block">
+    <div class="sec-header">
+      <div>
+        <span class="sec-kicker">COBERTURA ESPECIAL</span>
+        <h2 class="sec-title">Análisis y Crónicas Destacadas</h2>
+      </div>
+    </div>
+    <div class="grid3">
+      {destacadas.map((n) => (
+        <Card nota={n} />
+      ))}
+    </div>
+  </section>
+
+  <!-- Bloques por Sección del Menú -->
+  {blocks.map((b, i) => (
+    <section class={`sec-block ${i % 2 === 1 ? 'sec-tinted' : ''}`}>
+      <div class="wrap">
+        <div class="sec-header">
+          <div>
+            <span class="sec-kicker">SECCIÓN</span>
+            <h2 class="sec-title">{b.name}</h2>
+          </div>
+          <a href={`/seccion/${b.slug}/`} class="sec-more">Ver todo en {b.name} →</a>
+        </div>
+        <div class="grid4">
+          {b.items.map((n) => (
+            <Card nota={n} size="md" />
+          ))}
+        </div>
+      </div>
+    </section>
+  ))}
+
+  <!-- Más Noticias del Archivo Reciente -->
+  <section class="wrap sec-block">
+    <div class="sec-header">
+      <div>
+        <span class="sec-kicker">HEMEROTECA ACTIVA</span>
+        <h2 class="sec-title">Más Historias de Quintana Roo</h2>
+      </div>
+    </div>
+    <div class="grid3">
+      {latest.map((n) => (
+        <Card nota={n} />
+      ))}
+    </div>
+  </section>
+</Base>
